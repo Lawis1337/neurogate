@@ -1,8 +1,8 @@
 /* NEUROGATE service worker: весь сайт живёт в кэше — открывается без интернета.
    Стендбай-политика: то, что скачал хоть раз — доступно офлайн навсегда. */
 
-const CACHE = "neurogate-v1";
-const SHELL = ["./", "index.html", "manifest.webmanifest", "icon.svg"];
+const CACHE = "neurogate-v2";
+const SHELL = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon.svg"];
 
 // сами веса PERCHI-1 WebLLM складывает в IndexedDB своим инсталлятором —
 // воркеру их качать не нужно: модель уже офлайн-safe из коробки.
