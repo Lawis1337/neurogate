@@ -28,8 +28,8 @@
   <meta name="theme-color" content="#07020d">
   <!-- PWA: установка на телефон как приложение + офлайн из service worker -->
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="icon" href="icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -291,6 +291,7 @@
     .no-match { display: none; margin-top: 1rem; color: #fda4af; font-size: .9rem; }
     .no-match:not(.hidden) { display: block; }
     .tile.hidden { display: none; }
+    .hidden { display: none !important; }
 
     /* ── карточка ТВОЕЙ нейросети: всегда первая, глаз не отпускает ── */
     @property --ang { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
@@ -551,6 +552,7 @@
         <a href="#faq">FAQ</a>
       </nav>
       <div class="nav-right">
+        <button class="btn btn-ghost hidden" id="install-btn">📲 Установить</button>
         <button class="btn btn-ghost" id="auth-btn">Войти</button>
         <button class="btn btn-ghost" id="lucky-btn">Мне повезёт <span class="spark">✦</span></button>
       </div>
@@ -1479,6 +1481,35 @@
       navigator.serviceWorker.register("neurogate-sw.js").catch(() => {});
     });
   }
+
+  // Кнопка «Установить приложение»: Android Chrome сам скажет, когда готово,
+  // мы лишь ловим событие и показываем кнопку в шапке
+  (function () {
+    let deferredInstall = null;
+    const btn = document.getElementById("install-btn");
+    if (!btn) return;
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredInstall = e;
+      btn.classList.remove("hidden");
+    });
+    btn.addEventListener("click", async () => {
+      if (!deferredInstall) return;
+      deferredInstall.prompt();
+      const { outcome } = await deferredInstall.userChoice;
+      if (outcome === "accepted") btn.classList.add("hidden");
+      deferredInstall = null;
+    });
+    // iPhone: прямой кнопки нет, подсказываем путь через меню «Поделиться»
+    if (/iPhone|iPad|iPod/.test(navigator.userAgent) && !navigator.serviceWorker) {
+      btn.classList.remove("hidden");
+      btn.textContent = "📲 На экран «Домой»";
+      btn.addEventListener("click", () => {
+        alert("iPhone: нажми «Поделиться» (квадрат со стрелкой) → «На экран „Домой“» → Добавить. Готово: NeuroGate станет приложением!");
+        btn.textContent = "📲 На экран «Домой»";
+      });
+    }
+  })();
   </script>
 </body>
 </html>
