@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<!--
+  ═════════════════════════════════════════════════════════════
+   NEUROGATE · вход во все нейросети · вайб-кодинг v1.0
+  ─────────────────────────────────────────────────────────────
+   Стиль: тёмный фиолетово-чёрный + неон (по мотивам gigastudio)
+   Как менять:
+     · Список нейросетей → массив AIS в <script> (имя, ссылка,
+       описание, цвета, чипсы). Одна запись = одна карточка.
+     · Фразы под заголовком → массив MODELS
+     · Цвета → :root в <style>
+   Цикл вайб-кодинга: сохранил → F5 → посмотрел → сказал агенту.
+  ═════════════════════════════════════════════════════════════
+-->
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <title>NEUROGATE — вход во все нейросети</title>
+
+  <!-- SEO: то, что видно поисковикам и мессенджерам при расшаривании ссылки -->
+  <meta name="description" content="NEUROGATE — вход во все нейросети. Живой чат с ИИ прямо на сайте, каталог из 9 моделей, профиль и история без серверов. Бесплатно, без регистрации.">
+  <meta name="keywords" content="нейросети, чат с ии, chatgpt, claude, deepseek, gemini, neurogate, нейрогейт">
+  <meta property="og:title" content="NEUROGATE — вход во все нейросети">
+  <meta property="og:description" content="Все нейросети в одном окне: чат прямо на сайте + каталог. Бесплатно, без регистрации.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#07020d">
+  <!-- PWA: установка на телефон как приложение + офлайн из service worker -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="NeuroGate">
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Golos Text — русский гротеск, очень похож на шрифт референса -->
+  <link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* ─────────────────────────────────────────────
+       1. ПАЛИТРА — все цвета темы в одном месте
+       ───────────────────────────────────────────── */
+    :root {
+      --bg:      #07020d;               /* почти чёрный, но фиолетовый */
+      --panel:   rgba(124,58,237,.055); /* заливка тёмных панелей */
+      --panel-2: rgba(124,58,237,.09);
+      --border:  rgba(255,255,255,.09);
+      --text:    #f4f1fa;
+      --muted:   rgba(244,241,250,.52);
+      /* неон референса: розовый → фиолетовый */
+      --grad:  linear-gradient(92deg, #ec4899, #a855f7 55%, #7c3aed);
+      --neon:  rgba(216,68,233,.45);    /* свечение кнопок */
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Golos Text", system-ui, sans-serif;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    ::selection { background: rgba(168,85,247,.4); }
+
+    /* ─────────────────────────────────────────────
+       2. ФОНОВЫЕ СЛОИ
+       ───────────────────────────────────────────── */
+    #space { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+
+    /* Цветные "прожекторы" — как розово-фиолетовые пятна у референса */
+    .flare { position: fixed; border-radius: 50%; filter: blur(100px); z-index: 0; pointer-events: none; }
+    .flare-1 { width: 55vw; height: 55vw; left: -16vw; top: -22vw;  background: radial-gradient(circle, rgba(168,85,247,.28), transparent 70%); animation: drift 30s ease-in-out infinite alternate; }
+    .flare-2 { width: 46vw; height: 46vw; right: -14vw; top: 18vh;  background: radial-gradient(circle, rgba(236,72,153,.16), transparent 70%); animation: drift 38s ease-in-out infinite alternate-reverse; }
+    .flare-3 { width: 40vw; height: 40vw; left: 25vw; bottom: -22vw; background: radial-gradient(circle, rgba(124,58,237,.20), transparent 70%); animation: drift 44s ease-in-out infinite alternate; }
+    @keyframes drift { to { transform: translate(4vw, 3vh) scale(1.12); } }
+
+    .vignette {
+      position: fixed; inset: 0; z-index: 1; pointer-events: none;
+      background: radial-gradient(ellipse 90% 70% at 50% 30%, transparent 40%, rgba(0,0,0,.5) 100%);
+    }
+
+    /* ─────────────────────────────────────────────
+       3. ШАПКА И ЛОГОТИП (двухстрочный, как GIGA STUDIO)
+       ───────────────────────────────────────────── */
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 2; }
+
+    header {
+      position: sticky; top: 0; z-index: 10;
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      background: rgba(7,2,13,.6);
+      border-bottom: 1px solid rgba(255,255,255,.05);
+    }
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; }
+
+    .logo {
+      font-weight: 800; font-size: 17px; line-height: .92;
+      letter-spacing: .06em; text-transform: uppercase;
+      text-decoration: none; color: var(--text);
+    }
+    .logo b {
+      display: block;
+      background: var(--grad);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: .5rem;
+      padding: .72rem 1.5rem; border-radius: 999px;
+      font: inherit; font-weight: 600; font-size: .95rem;
+      text-decoration: none; cursor: pointer; border: 0; color: #fff;
+      transition: transform .25s, box-shadow .25s, filter .25s;
+    }
+    .btn-primary { background: var(--grad); box-shadow: 0 8px 32px var(--neon); }
+    .btn-primary:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 12px 40px var(--neon); }
+    .btn-ghost {
+      background: transparent; border: 1px solid var(--border); color: var(--text);
+    }
+    .btn-ghost:hover { border-color: rgba(236,72,153,.5); background: var(--panel); transform: translateY(-2px); }
+    .spark { font-style: normal; font-size: 1em; } /* значок ✦ на кнопках */
+
+    /* ─────────────────────────────────────────────
+       4. ГЕРОЙ — огромный заголовок, как на референсе
+       ───────────────────────────────────────────── */
+    .hero { padding: 9vh 0 7vh; }
+    .chip {
+      display: inline-flex; align-items: center; gap: .45rem;
+      padding: .42rem .95rem; border-radius: 999px;
+      border: 1px solid rgba(236,72,153,.35); background: var(--panel);
+      color: #f0abfc; font-size: .8rem; font-weight: 500; letter-spacing: .02em;
+      margin-bottom: 2rem;
+    }
+    h1 {
+      font-weight: 800;
+      font-size: clamp(2.5rem, 7.2vw, 5rem);
+      line-height: 1.04; letter-spacing: -.015em;
+      max-width: 17ch;
+    }
+    h1 .grad {
+      background: var(--grad);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .sub {
+      margin-top: 1.4rem; max-width: 52ch;
+      color: var(--muted); font-size: clamp(1rem, 2.4vw, 1.18rem); line-height: 1.55;
+    }
+    .typing-line {
+      margin-top: 1.1rem;
+      font-family: ui-monospace, Consolas, monospace; font-size: .88rem;
+      color: rgba(240,171,252,.75); letter-spacing: .03em;
+    }
+    .hero-actions { display: flex; gap: .9rem; margin-top: 2.2rem; flex-wrap: wrap; }
+
+    /* печатающийся курсор */
+    .cursor {
+      display: inline-block; width: 8px; height: 1em;
+      background: #ec4899; border-radius: 2px; vertical-align: -.15em;
+      animation: blink 1s steps(1) infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* ─────────────────────────────────────────────
+       5. КАТАЛОГ НЕЙРОСЕТЕЙ
+       ───────────────────────────────────────────── */
+    .section-head { margin: 8vh 0 2.2rem; }
+    .section-head h2 { font-size: clamp(1.6rem, 4vw, 2.3rem); font-weight: 800; letter-spacing: -.01em; }
+    .section-head p { color: var(--muted); margin-top: .5rem; max-width: 60ch; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; padding-bottom: 4vh; }
+
+    .tile {
+      position: relative;
+      border-radius: 22px;
+      padding: 1.5rem;
+      border: 1px solid var(--border);
+      background: linear-gradient(160deg, var(--panel-2), var(--panel));
+      transition: transform .3s cubic-bezier(.2,.8,.2,1), border-color .3s, box-shadow .3s, background .3s;
+      text-decoration: none; color: var(--text); display: block;
+    }
+    .tile:hover {
+      transform: translateY(-6px);
+      border-color: rgba(236,72,153,.45);
+      box-shadow: 0 18px 50px rgba(124,58,237,.28);
+      background: linear-gradient(160deg, rgba(124,58,237,.13), var(--panel));
+    }
+
+    .tile-top { display: flex; align-items: center; gap: 1rem; margin-bottom: .9rem; }
+    .mark {
+      width: 54px; height: 54px; border-radius: 16px; flex-shrink: 0;
+      display: grid; place-items: center;
+      font-weight: 800; font-size: 1.05rem; letter-spacing: .02em; color: #fff;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 6px 18px rgba(0,0,0,.35);
+    }
+    .tile h3 { font-size: 1.18rem; font-weight: 800; letter-spacing: -.01em; }
+    .tile .who { color: var(--muted); font-size: .8rem; margin-top: 2px; }
+    .tile p.desc { color: var(--muted); font-size: .93rem; line-height: 1.5; min-height: 3em; }
+
+    .chips { display: flex; gap: .45rem; flex-wrap: wrap; margin-top: 1rem; }
+    .chip-s {
+      font-size: .72rem; font-weight: 500; padding: .3rem .7rem; border-radius: 999px;
+      border: 1px solid var(--border); color: rgba(244,241,250,.7); background: rgba(255,255,255,.03);
+    }
+
+    .open-row {
+      margin-top: 1.1rem; display: flex; align-items: center; justify-content: space-between;
+      color: #f0abfc; font-weight: 600; font-size: .9rem;
+    }
+    .tile:hover .open-row { color: #f5d0fe; }
+    .open-row .arr { transition: transform .3s; }
+    .tile:hover .arr { transform: translateX(5px); } /* стрелка "доезжает" при ховере */
+
+    /* ─────────────────────────────────────────────
+       5.5 ГИД-ЧАТ · идеи подсмотрены у giga.chat и iskrabot
+       ───────────────────────────────────────────── */
+    .chat-panel {
+      max-width: 640px; margin-top: 2.6rem;
+      border-radius: 24px;
+      border: 1px solid var(--border);
+      background: linear-gradient(160deg, rgba(30,17,48,.7), rgba(18,10,30,.7));
+      box-shadow: 0 24px 70px rgba(0,0,0,.45);
+      padding: 1.5rem 1.6rem 1.3rem;
+    }
+    .guide-row { display: flex; align-items: center; gap: .8rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,.06); }
+    .g-avatar {
+      width: 46px; height: 46px; border-radius: 50%;
+      display: grid; place-items: center;
+      background: var(--grad); color: #fff; font-size: 1.2rem;
+      box-shadow: 0 6px 20px var(--neon);
+    }
+    .g-name { font-weight: 700; }
+    .g-status { color: var(--muted); font-size: .8rem; display: flex; align-items: center; gap: .45rem; margin-top: 2px; }
+
+    /* зелёный пульсирующий статус "в сети" */
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #22c55e; display: inline-block;
+      box-shadow: 0 0 10px rgba(34,197,94,.8);
+      animation: pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes pulse { 50% { opacity: .4; } }
+
+    /* пузырь-приветствие, как у Искры */
+    .bubble {
+      margin: 1.1rem 0 .9rem;
+      padding: .95rem 1.15rem;
+      background: rgba(124,58,237,.12);
+      border: 1px solid rgba(168,85,247,.18);
+      border-radius: 18px 18px 18px 6px;
+      color: #e9d5ff; font-size: .95rem; line-height: 1.5;
+      max-width: 52ch;
+    }
+    /* строка поиска по задачам — центральный инпут как у ГигаЧата */
+    .finder { display: flex; gap: .7rem; }
+    .finder input {
+      flex: 1;
+      padding: .95rem 1.2rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.35);
+      color: var(--text); font: inherit; font-size: .98rem;
+      outline: none;
+      transition: border-color .25s, box-shadow .25s;
+    }
+    .finder input::placeholder { color: rgba(244,241,250,.35); }
+    .finder input:focus { border-color: rgba(236,72,153,.5); box-shadow: 0 0 0 4px rgba(236,72,153,.08); }
+    .send-btn {
+      width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;
+      border: 0; background: var(--grad); color: #fff;
+      font-size: 1.25rem; font-weight: 700; cursor: pointer;
+      box-shadow: 0 8px 24px var(--neon);
+      transition: transform .25s, filter .25s;
+    }
+    .send-btn:hover { transform: translateY(-2px) scale(1.04); filter: brightness(1.1); }
+
+    .pills { display: flex; gap: .55rem; flex-wrap: wrap; margin-top: 1rem; }
+    .pill {
+      padding: .45rem .95rem; border-radius: 999px;
+      border: 1px solid var(--border); background: rgba(255,255,255,.04);
+      color: rgba(244,241,250,.75); font: inherit; font-size: .82rem; cursor: pointer;
+      transition: border-color .25s, color .25s, transform .25s;
+    }
+    .pill:hover { border-color: rgba(236,72,153,.5); color: #fff; transform: translateY(-1px); }
+
+    .no-match { display: none; margin-top: 1rem; color: #fda4af; font-size: .9rem; }
+    .no-match:not(.hidden) { display: block; }
+    .tile.hidden { display: none; }
+
+    /* ── карточка ТВОЕЙ нейросети: всегда первая, глаз не отпускает ── */
+    @property --ang { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+    .tile.own {
+      border: 1px solid transparent;
+      background:
+        linear-gradient(160deg, rgba(30,17,48,.75), rgba(16,9,28,.8)) padding-box,
+        conic-gradient(from var(--ang), #ec4899, #a855f7, #22d3ee, #ec4899) border-box;
+      animation: spin-border 5s linear infinite;
+    }
+    @keyframes spin-border { to { --ang: 360deg; } }
+    .badge {
+      position: absolute; top: 1.1rem; right: 1.1rem;
+      padding: .3rem .75rem; border-radius: 999px;
+      font-size: .72rem; font-weight: 600; color: #f5d0fe;
+      background: rgba(236,72,153,.14); border: 1px solid rgba(236,72,153,.4);
+    }
+
+    /* ── 5.6 Живой чат: ответы моделей прямо на сайте ── */
+    .ai-chips { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .ai-chip {
+      display: inline-flex; align-items: center; gap: .5rem;
+      padding: .5rem .9rem; border-radius: 999px;
+      border: 1px solid var(--border); background: rgba(0,0,0,.25);
+      color: rgba(244,241,250,.55); font: inherit; font-size: .85rem; font-weight: 600;
+      cursor: pointer; transition: border-color .25s, color .25s, background .25s, box-shadow .25s;
+    }
+    .ai-chip .mp-dot { width: 12px; height: 12px; }
+    .ai-chip.on {
+      border-color: rgba(236,72,153,.55); color: #fff;
+      background: rgba(236,72,153,.10); box-shadow: 0 0 18px rgba(236,72,153,.15);
+    }
+
+    /* лента сообщений: пользователь справа, модели слева */
+    .msgs {
+      margin-top: 1rem; max-height: 340px; overflow: auto;
+      display: flex; flex-direction: column; gap: .8rem;
+      padding: .35rem .5rem;
+      scrollbar-width: thin; scrollbar-color: rgba(168,85,247,.35) transparent;
+    }
+    .msgs::-webkit-scrollbar { width: 6px; }
+    .msgs::-webkit-scrollbar-thumb { background: rgba(168,85,247,.35); border-radius: 99px; }
+    .msg { display: flex; flex-direction: column; gap: .3rem; max-width: 92%; animation: msg-in .35s cubic-bezier(.2,.8,.2,1); }
+    @keyframes msg-in { from { opacity: 0; transform: translateY(8px); } }
+    .msg.user { align-self: flex-end; align-items: flex-end; }
+    .msg-head {
+      font-size: .72rem; color: var(--muted);
+      display: flex; align-items: center; gap: .4rem;
+      font-family: ui-monospace, Consolas, monospace;
+    }
+    .msg-bubble { padding: .75rem 1rem; border-radius: 16px; font-size: .93rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+    .msg.user .msg-bubble { background: var(--grad); color: #fff; border-radius: 16px 4px 16px 16px; box-shadow: 0 8px 24px var(--neon); }
+    .msg.ai .msg-bubble { background: rgba(124,58,237,.10); border: 1px solid rgba(168,85,247,.16); border-top-left-radius: 4px; }
+    .msg-empty { color: var(--muted); font-size: .88rem; padding: .4rem .5rem; }
+    .warn { color: #fbbf24; }
+    .spin {
+      width: 12px; height: 12px; border-radius: 50%;
+      border: 2px solid rgba(244,241,250,.25); border-top-color: #f0abfc;
+      display: inline-block; animation: rot 1s linear infinite;
+    }
+    @keyframes rot { to { transform: rotate(360deg); } }
+
+    /* опциональный свой ключ Gemini */
+    .gsettings { margin-top: .9rem; }
+    .gs-btn { border: 0; background: transparent; color: rgba(244,241,250,.4); font: inherit; font-size: .78rem; cursor: pointer; padding: 0; }
+    .gs-btn:hover { color: #f0abfc; }
+    .gs-pop {
+      display: none; margin-top: .5rem; padding: .7rem;
+      border-radius: 14px; border: 1px solid var(--border); background: rgba(0,0,0,.35);
+      flex-wrap: wrap; gap: .5rem; align-items: center;
+    }
+    .gs-pop.open { display: flex; }
+    .gs-pop input { flex: 1; min-width: 150px; padding: .5rem .8rem; border-radius: 10px; border: 1px solid var(--border); background: rgba(0,0,0,.4); color: var(--text); font: inherit; font-size: .85rem; outline: none; }
+    .gs-save { padding: .5rem .9rem; border-radius: 10px; border: 0; background: var(--grad); color: #fff; font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; }
+    .gs-hint { width: 100%; color: rgba(244,241,250,.35); font-size: .72rem; }
+    .chat-note { margin-top: .9rem; color: rgba(244,241,250,.38); font-size: .75rem; font-family: ui-monospace, Consolas, monospace; }
+
+    /* безопасная тряска, если нажали ↑ с пустым полем */
+    .finder.shake { animation: shake .5s; }
+    @keyframes shake { 20%, 60% { transform: translateX(-7px); } 40%, 80% { transform: translateX(7px); } }
+
+    /* ── Навигация в шапке, тарифы, FAQ, большой футер ── */
+    html { scroll-behavior: smooth; }
+    .nav-links { display: flex; gap: 1.6rem; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-size: .92rem; font-weight: 500; transition: color .25s; }
+    .nav-links a:hover { color: #fff; }
+    @media (max-width: 760px) { .nav-links { display: none; } }
+
+    /* Тарифы */
+    .plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(255px, 1fr)); gap: 16px; }
+    .plan {
+      position: relative; border-radius: 22px; border: 1px solid var(--border);
+      background: linear-gradient(160deg, var(--panel-2), var(--panel));
+      padding: 1.7rem; display: flex; flex-direction: column; gap: .9rem;
+      transition: transform .3s, box-shadow .3s;
+    }
+    .plan:hover { transform: translateY(-4px); box-shadow: 0 16px 44px rgba(0,0,0,.4); }
+    .plan.pro {
+      border: 1px solid transparent;
+      background:
+        linear-gradient(160deg, rgba(34,18,55,.92), rgba(18,10,30,.95)) padding-box,
+        linear-gradient(135deg, #ec4899, #a855f7, #22d3ee) border-box;
+      box-shadow: 0 18px 60px rgba(124,58,237,.3);
+    }
+    .plan:hover.plan.pro { box-shadow: 0 24px 70px rgba(216,68,233,.35); }
+    .plan h3 { font-size: 1.1rem; font-weight: 800; }
+    .plan .price { font-size: 2rem; font-weight: 800; letter-spacing: -.02em; }
+    .plan .price small { font-size: .85rem; color: var(--muted); font-weight: 500; }
+    .plan ul { list-style: none; display: flex; flex-direction: column; gap: .5rem; color: var(--muted); font-size: .9rem; }
+    .plan li::before { content: "✦ "; color: #f0abfc; }
+    .plan .btn { justify-content: center; margin-top: auto; font-size: .9rem; padding: .7rem 1.2rem; }
+    .soon {
+      position: absolute; top: 1.2rem; right: 1.2rem;
+      padding: .28rem .7rem; border-radius: 999px;
+      font-size: .7rem; font-weight: 600; color: #f0abfc;
+      background: rgba(236,72,153,.14); border: 1px solid rgba(236,72,153,.4);
+    }
+
+    /* FAQ — аккордеон на чистых <details>, без JS */
+    .faq { max-width: 780px; }
+    .faq details {
+      border: 1px solid var(--border); background: rgba(124,58,237,.05);
+      border-radius: 16px; padding: 1rem 1.2rem; margin-bottom: .7rem;
+      transition: border-color .25s, background .25s;
+    }
+    .faq details[open] { border-color: rgba(236,72,153,.4); background: rgba(124,58,237,.09); }
+    .faq summary { cursor: pointer; font-weight: 700; font-size: 1rem; list-style: none; display: flex; justify-content: space-between; gap: 1rem; align-items: center; }
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq summary::after { content: "+"; color: #f0abfc; font-size: 1.3rem; transition: transform .25s; flex-shrink: 0; }
+    .faq details[open] summary::after { transform: rotate(45deg); }
+    .faq details p { color: var(--muted); font-size: .9rem; line-height: 1.55; margin-top: .7rem; }
+
+    /* Футер колонками */
+    footer .cols { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 2rem; padding: 2.2rem 0 .8rem; }
+    footer .f-title { font-weight: 700; font-size: .95rem; margin-bottom: .8rem; }
+    footer .f-link { display: block; color: var(--muted); text-decoration: none; font-size: .88rem; margin-bottom: .5rem; }
+    footer .f-link:hover { color: #f0abfc; }
+    footer .blurb { color: var(--muted); font-size: .88rem; line-height: 1.5; margin: .7rem 0 1rem; max-width: 40ch; }
+    footer .base {
+      border-top: 1px solid rgba(255,255,255,.05);
+      margin-top: 1rem; padding: 1.2rem 0 .4rem;
+      color: rgba(244,241,250,.42); font-size: .78rem;
+      font-family: ui-monospace, Consolas, monospace;
+    }
+    @media (max-width: 700px) { footer .cols { grid-template-columns: 1fr; gap: 1.4rem; } }
+
+    /* ── NEUROGATE ID: профиль без серверов ── */
+    .nav-right { display: flex; align-items: center; gap: .7rem; }
+    #auth-btn { display: inline-flex; align-items: center; gap: .55rem; padding: .35rem 1rem .35rem .45rem; }
+    #auth-btn img { width: 28px; height: 28px; border-radius: 50%; }
+    #auth-btn .av { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: .9rem; box-shadow: 0 0 12px var(--neon); }
+
+    .am-overlay {
+      position: fixed; inset: 0; z-index: 100; display: none; place-items: center;
+      background: rgba(4,1,8,.72);
+      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+      padding: 20px;
+    }
+    .am-overlay.open { display: grid; animation: am-fade .25s ease; }
+    @keyframes am-fade { from { opacity: 0; } }
+    .am-card {
+      position: relative; width: min(94vw, 430px);
+      max-height: 92vh; overflow: auto;
+      border-radius: 24px; border: 1px solid var(--border);
+      background: linear-gradient(160deg, rgba(30,17,48,.97), rgba(12,7,22,.98));
+      box-shadow: 0 40px 100px rgba(0,0,0,.6);
+      padding: 1.7rem 1.6rem 1.4rem;
+      animation: rise .35s cubic-bezier(.2,.8,.2,1);
+      scrollbar-width: thin; scrollbar-color: rgba(168,85,247,.35) transparent;
+    }
+    .am-x {
+      position: absolute; top: 1rem; right: 1rem;
+      width: 34px; height: 34px; border-radius: 10px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--muted); cursor: pointer; font-size: 1rem;
+    }
+    .am-x:hover { color: #fff; border-color: rgba(236,72,153,.5); }
+    .am-logo { font-weight: 800; font-size: 1.35rem; letter-spacing: .02em; }
+    .am-logo b { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .am-sub { color: var(--muted); font-size: .88rem; margin: .5rem 0 1.2rem; line-height: 1.45; }
+    .ab {
+      display: flex; align-items: center; gap: .75rem; width: 100%;
+      padding: .85rem 1rem; border-radius: 14px;
+      border: 1px solid var(--border); background: rgba(0,0,0,.25);
+      color: var(--text); font: inherit; font-size: .95rem; font-weight: 600;
+      cursor: pointer; margin-bottom: .6rem; text-align: left;
+      transition: border-color .25s, background .25s, transform .25s, filter .25s;
+    }
+    .ab:hover { border-color: rgba(236,72,153,.5); background: rgba(124,58,237,.08); transform: translateY(-1px); }
+    .ab.primary { background: var(--grad); border-color: transparent; color: #fff; box-shadow: 0 8px 26px var(--neon); }
+    .ab.primary:hover { filter: brightness(1.08); }
+    .ab.muted, .ab:disabled { opacity: .45; cursor: not-allowed; }
+    .ab.muted:hover, .ab:disabled:hover { transform: none; border-color: var(--border); background: rgba(0,0,0,.25); }
+    .ab svg { width: 20px; height: 20px; fill: currentColor; flex-shrink: 0; }
+    .ab .sub { color: inherit; opacity: .65; font-size: .75rem; font-weight: 400; display: block; margin-top: 2px; }
+    .am-note { color: rgba(244,241,250,.4); font-size: .75rem; line-height: 1.5; margin-top: .8rem; }
+    .am-config { margin-top: 1.1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,.07); }
+    .am-config .lab { color: var(--muted); font-size: .78rem; margin-bottom: .45rem; display: block; line-height: 1.4; }
+    .am-config .row { display: flex; gap: .5rem; }
+    .am-config input {
+      flex: 1; padding: .55rem .8rem; border-radius: 10px;
+      border: 1px solid var(--border); background: rgba(0,0,0,.4);
+      color: var(--text); font: inherit; font-size: .85rem; outline: none;
+    }
+    .am-config button { padding: .55rem .9rem; border-radius: 10px; border: 0; background: var(--grad); color: #fff; font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; }
+    .am-code {
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: 1.35rem; letter-spacing: .3em;
+      background: rgba(0,0,0,.4); border: 1px solid rgba(236,72,153,.4);
+      padding: .85rem; border-radius: 12px; text-align: center; color: #f0abfc;
+    }
+    .am-status { display: flex; align-items: center; gap: .6rem; color: var(--muted); font-size: .85rem; margin-top: .8rem; }
+    .am-quit { margin-top: .8rem; color: #fda4af; }
+
+    /* ─────────────────────────────────────────────
+       6. ПОДВАЛ
+       ───────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid rgba(255,255,255,.05);
+      padding: 2rem 0 3rem;
+      color: var(--muted); font-size: .85rem;
+      font-family: ui-monospace, Consolas, monospace;
+    }
+    footer a { color: #f0abfc; text-decoration: none; }
+
+    /* появление секций при прокрутке */
+    .reveal { opacity: 0; transform: translateY(26px); transition: opacity .7s ease, transform .7s cubic-bezier(.2,.8,.2,1); }
+    .reveal.on { opacity: 1; transform: none; }
+
+    @media (max-width: 560px) {
+      .hero { padding-top: 6vh; }
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    /* уважаем настройку "уменьшить анимации" в системе */
+    @media (prefers-reduced-motion: reduce) {
+      .flare, .cursor, .arr { animation: none !important; transition: none !important; }
+      .reveal { opacity: 1; transform: none; }
+      .tile, .btn { transition: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Фоновые слои -->
+  <canvas id="space"></canvas>
+  <div class="flare flare-1"></div>
+  <div class="flare flare-2"></div>
+  <div class="flare flare-3"></div>
+  <div class="vignette"></div>
+
+  <header>
+    <div class="wrap nav">
+      <a class="logo" href="#"><b>Neuro</b><b>Gate</b></a>
+      <nav class="nav-links">
+        <a href="#catalog">Каталог</a>
+        <a href="#plans">Тарифы</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+      <div class="nav-right">
+        <button class="btn btn-ghost" id="auth-btn">Войти</button>
+        <button class="btn btn-ghost" id="lucky-btn">Мне повезёт <span class="spark">✦</span></button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <!-- ══ ГЕРОЙ ══ -->
+    <section class="hero">
+      <span class="chip"><span class="spark">✦</span> 9 нейросетей · без регистрации · бесплатно</span>
+      <h1>Вход во <span class="grad">все нейросети</span> — в одном окне</h1>
+      <p class="sub">
+        Никаких закладок и перепутанных вкладок. Здесь живут самые сильные ИИ-модели планеты:
+        выбирай задачу — и открывай нужную.
+      </p>
+      <p class="typing-line">→ сегодня пробуем: <span id="typing"></span><span class="cursor"></span></p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="https://chatgpt.com" target="_blank" rel="noopener">Открыть ChatGPT <span class="spark">✦</span></a>
+        <a class="btn btn-ghost" href="#catalog">Смотреть каталог ↓</a>
+      </div>
+
+      <!-- ══ ГИД-ЧАТ: опиши задачу — подберём нейросеть ══ -->
+      <div class="chat-panel" id="chat-panel">
+        <div class="guide-row">
+          <div class="g-avatar">✦</div>
+          <div>
+            <div class="g-name">НейроГид</div>
+            <div class="g-status"><span class="status-dot"></span> в сети · всегда работает</div>
+          </div>
+        </div>
+        <div class="bubble">Теперь я не просто показываю дорогу — возвращаю ответы прямо здесь. Отметь модели и спроси что-нибудь.</div>
+        <div class="ai-chips" id="ai-chips"></div>
+        <div class="msgs" id="msgs">
+          <div class="msg-empty" id="msg-empty">✦ Чат пуст — задай первый вопрос. Ответ придёт с моделей, отмеченных сверху.</div>
+        </div>
+        <form class="finder" id="finder">
+          <input id="finder-input" type="text" placeholder="Спроси что-нибудь…" autocomplete="off">
+          <button class="send-btn" type="submit" title="Отправить">↑</button>
+        </form>
+        <div class="chat-note">ответы даёт мозг NEUROGATE · PERCHI-1 Local работает даже без интернета · бесплатно, без ключей</div>
+        <div class="gsettings">
+          <button type="button" class="gs-btn" id="gs-btn">⚙ включить ещё и Gemini (свой бесплатный ключ)</button>
+          <div class="gs-pop" id="gs-pop">
+            <input id="gs-key" type="password" placeholder="вставь ключ с aistudio.google.com">
+            <button type="button" class="gs-save" id="gs-save">Включить</button>
+            <div class="gs-hint">ключ хранится только у тебя в браузере · берётся за две минуты на aistudio.google.com → Get API key</div>
+          </div>
+        </div>
+        <div class="pills">
+          <button class="pill" type="button">код</button>
+          <button class="pill" type="button">тексты</button>
+          <button class="pill" type="button">картинки</button>
+          <button class="pill" type="button">поиск</button>
+          <button class="pill" type="button">офис</button>
+          <button class="pill" type="button">голос</button>
+        </div>
+        <div class="no-match hidden" id="no-match">🫥 Под такую задачу пока никого нет. Глянь полный каталог ↓</div>
+      </div>
+    </section>
+
+    <!-- ══ КАТАЛОГ: карточки рендерит JS из массива AIS ══ -->
+    <section id="catalog">
+      <div class="section-head reveal">
+        <h2>Каталог нейросетей</h2>
+        <p>Клик по любой карточке откроет сервис в новой вкладке. Хочешь добавить свою модель — допиши объект в массив <span style="font-family:ui-monospace">AIS</span> в коде.</p>
+      </div>
+      <div class="grid" id="grid"></div>
+    </section>
+
+    <!-- ══ ТАРИФЫ: сайт готов к продаже ══ -->
+    <section id="plans">
+      <div class="section-head reveal">
+        <h2>Тарифы</h2>
+        <p>Всё, что нужно обычному человеку — бесплатно навсегда. Платное появится только для тех, кто хочет приоритет и синхронизацию. Не голословно — просто пока без сервера.</p>
+      </div>
+      <div class="plans">
+        <div class="plan reveal">
+          <h3>Свободный вход</h3>
+          <div class="price">0 ₽ <small>навсегда</small></div>
+          <ul>
+            <li>Чат с мозгом NeuroGate</li>
+            <li>Каталог из 9 нейросетей</li>
+            <li>Профиль: гость или GitHub</li>
+            <li>История чата в твоём браузере</li>
+            <li>Слот под PERCHI-1</li>
+          </ul>
+          <button class="btn btn-primary" id="free-btn" type="button">Начать бесплатно ✦</button>
+        </div>
+        <div class="plan pro reveal">
+          <span class="soon">скоро</span>
+          <h3>Pro</h3>
+          <div class="price">299 ₽ <small>/ месяц</small></div>
+          <ul>
+            <li>Приоритет в очереди шлюза</li>
+            <li>Новые модели в день релиза</li>
+            <li>Синхронизация истории между устройствами</li>
+            <li>Gemini второй сетью в один клик</li>
+            <li>PERCHI-1 — первым</li>
+          </ul>
+          <button class="btn btn-ghost" id="pro-btn" type="button">Записаться при запуске</button>
+        </div>
+        <div class="plan reveal">
+          <span class="soon">индивидуально</span>
+          <h3>Свой PERCHI-1</h3>
+          <div class="price">договор <small>/ по задаче</small></div>
+          <ul>
+            <li>Слот твоей нейросети с брендингом</li>
+            <li>Свои API-ключи — данные только твои</li>
+            <li>Дообучение под твой стиль</li>
+            <li>Ставится прямо на этот сайт</li>
+          </ul>
+          <button class="btn btn-ghost" disabled type="button">Форма заявки — после хостинга</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ FAQ ══ -->
+    <section id="faq">
+      <div class="section-head reveal">
+        <h2>FAQ</h2>
+        <p>Коротко о том, о чём спрашивают чаще всего.</p>
+      </div>
+      <div class="faq reveal">
+        <details open>
+          <summary>Это правда бесплатно?</summary>
+          <p>Да. Чат с мозгом NeuroGate, каталог всех нейросетей, профиль и история — ноль рублей. Платное отойдёт к Pro-тарифу (приоритет и синхронизация) — записаться в список можно уже сейчас.</p>
+        </details>
+        <details>
+          <summary>Кто отвечает в чате?</summary>
+          <p>Бортовая модель NeuroGate через открытый шлюз — без ключей и регистрации. Список доступных моделей тянется с сервера живьём: добавят новые — чипы появятся сами.</p>
+        </details>
+        <details>
+          <summary>Где хранится моя история?</summary>
+          <p>Только в твоём браузере (localStorage). Никаких серверов: выйдешь из профиля — он забудется в этом браузере, но история останется под ним же на случай возврата.</p>
+        </details>
+        <details>
+          <summary>Зачем аккаунт, если всё локально?</summary>
+          <p>Чтобы история и настройки держались под твоим именем. Вход через GitHub (device-код, работает уже сейчас) добавляет настоящее имя и аватарку — сервер при этом всё равно не нужен.</p>
+        </details>
+        <details>
+          <summary>А Google / VK / Telegram?</summary>
+          <p>Им нужен зарегистрированный https-домен. Кнопки уже стоят — включаются в один заход сразу после бесплатного хостинга на GitHub Pages.</p>
+        </details>
+        <details>
+          <summary>Что за PERCHI-1?</summary>
+          <p>Первая карточка каталога — забронированное место под собственную нейросеть проекта. Когда модель будет готова, она выйдет в мир прямо отсюда, а Pro-подписчики попробуют её первыми.</p>
+        </details>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div class="cols">
+        <div>
+          <a class="logo" href="#"><b>Neuro</b><b>Gate</b></a>
+          <p class="blurb">Дверь во все нейросети: чат с ИИ прямо на сайте, каталог лучших моделей планеты и место под собственный AI.</p>
+          <div class="g-status"><span class="status-dot"></span> всегда работает — онлайн 24/7</div>
+        </div>
+        <div>
+          <div class="f-title">Разделы</div>
+          <a class="f-link" href="#catalog">Каталог нейросетей</a>
+          <a class="f-link" href="#plans">Тарифы</a>
+          <a class="f-link" href="#faq">FAQ</a>
+        </div>
+        <div>
+          <div class="f-title">Проект</div>
+          <span class="f-link">PERCHI-1 — своя нейросеть (скоро)</span>
+          <span class="f-link">Pro-подписка — в разработке</span>
+          <span class="f-link">Данные остаются в твоём браузере</span>
+        </div>
+      </div>
+      <div class="base">✦ сделано вайб-кодингом · <span id="year"></span> · NEUROGATE — вход во все нейросети</div>
+    </div>
+  </footer>
+
+  <!-- ── NEUROGATE ID: модалка входа (выше скрипта, чтобы он её увидел) ── -->
+  <div class="am-overlay" id="am">
+    <div class="am-card">
+      <button class="am-x" id="am-close">✕</button>
+      <div class="am-logo"><b>Neuro</b>Gate ID</div>
+      <p class="am-sub">Профиль и история чата хранятся у тебя в браузере. Сайт видит только то, что ты вводишь сам.</p>
+      <div id="am-body"></div>
+    </div>
+  </div>
+
+  <script>
+    /* ═════════════════════════════════════════
+       7. ДАННЫЕ — добавляй свою нейросеть одной записью.
+       grad: два цвета для "логотипа"-миниатюры.
+       ═════════════════════════════════════════ */
+    const AIS = [
+      { name: "ChatGPT",   by: "OpenAI",      url: "https://chatgpt.com",
+        desc: "Универсальный номер один: тексты, картинки, голос и агентные режимы.",
+        chips: ["всё в одном", "бесплатный тариф"], grad: ["#10a37f", "#0b6e55"], mono: "CG" },
+
+      { name: "Claude",    by: "Anthropic",   url: "https://claude.ai",
+        desc: "Самый сильный в программировании, анализе текста и длинных документах.",
+        chips: ["код", "длинный контекст"], grad: ["#d97757", "#a1502e"], mono: "CL" },
+
+      { name: "DeepSeek",  by: "DeepSeek AI", url: "https://chat.deepseek.com",
+        desc: "Почти всё бесплатно, модель с открытым кодом. Отличный второй пилот для кода.",
+        chips: ["дёшево", "открытая модель"], grad: ["#4d6bfe", "#2740c8"], mono: "DS" },
+
+      { name: "Gemini",    by: "Google",      url: "https://gemini.google.com",
+        desc: "Мультимодальный гигант: текст, картинки, видео и интеграция со всем гуглом.",
+        chips: ["мультимодал", "сверхдлинные ролики"], grad: ["#4285f4", "#9b72cb"], mono: "GE" },
+
+      { name: "Grok",      by: "xAI",         url: "https://grok.com",
+        desc: "Дерзкий характер, злые мемы и самые свежие данные из X (Твиттера).",
+        chips: ["новости", "без стеснения"], grad: ["#16181d", "#2d3340"], mono: "GR" },
+
+      { name: "Perplexity",by: "Perplexity",  url: "https://www.perplexity.ai",
+        desc: "Нейропоиск: отвечает и сразу даёт ссылки на источники. Замена Гуглу.",
+        chips: ["поиск", "с источниками"], grad: ["#20808d", "#0e4a52"], mono: "PP" },
+
+      { name: "Copilot",   by: "Microsoft",   url: "https://copilot.microsoft.com",
+        desc: "Встроен в Windows и Office: помогает прямо в Word, Excel и на панели задач.",
+        chips: ["в Windows", "офисные задачи"], grad: ["#0078d4", "#5e2ce0"], mono: "CP" },
+
+      { name: "Le Chat",   by: "Mistral",     url: "https://chat.mistral.ai",
+        desc: "Европейский подмастерье: реактивно быстрый и очень щедрый на бесплатное.",
+        chips: ["шустрый", "из ЕС"], grad: ["#ff7000", "#e0b000"], mono: "LC" },
+
+      { name: "Qwen",      by: "Alibaba",     url: "https://chat.qwen.ai",
+        desc: "Китайский полиглот: сильный в коде и математике, щедрый бесплатный тариф.",
+        chips: ["мультиязычность", "бесплатно"], grad: ["#615ced", "#3c2f9e"], mono: "QW" }
+    ];
+
+    const MODELS = AIS.map(a => a.name); // фразы для печатной машинки — из того же списка
+
+    // Теги для подбора по задаче: "напиши код" → чей тег совпадёт — та карточка и светится
+    const TAGS = {
+      "ChatGPT":    ["картинки", "голос", "видео", "агенты", "переводчик", "тексты", "учёба"],
+      "Claude":     ["код", "программирование", "тексты", "анализ", "документы"],
+      "DeepSeek":   ["код", "программирование", "математика", "бесплатно"],
+      "Gemini":     ["картинки", "видео", "мультимодал", "учёба", "гугл"],
+      "Grok":       ["новости", "мемы", "постирония", "тексты"],
+      "Perplexity": ["поиск", "источники", "наука", "новости"],
+      "Copilot":    ["офис", "word", "excel", "windows", "документы"],
+      "Le Chat":    ["быстрый", "переводчик", "тексты"],
+      "Qwen":       ["код", "математика", "бесплатно", "переводчик"]
+    };
+
+    // Твоё имя модели — меняется тут, везде само
+    const OWN_NAME = "PERCHI-1";
+
+    /* ═════════════════════════════════════════
+       8. СБОРКА КАРТОЧЕК
+       ═════════════════════════════════════════ */
+    const grid = document.getElementById("grid");
+
+    for (const ai of AIS) {
+      const card = document.createElement("a");
+      card.className = "tile reveal";
+      card.href = ai.url;
+      card.target = "_blank";
+      card.rel = "noopener";
+      card.innerHTML = `
+        <div class="tile-top">
+          <div class="mark" style="background:linear-gradient(135deg, ${ai.grad[0]}, ${ai.grad[1]})">${ai.mono}</div>
+          <div>
+            <h3>${ai.name}</h3>
+            <div class="who">${ai.by}</div>
+          </div>
+        </div>
+        <p class="desc">${ai.desc}</p>
+        <div class="chips">${ai.chips.map(c => `<span class="chip-s">${c}</span>`).join("")}</div>
+        <div class="open-row"><span>Открыть</span><span class="arr">→</span></div>`;
+      // индекс для подбора: все ключевые слова карточки в одном поле
+      card.dataset.s = [ai.name, ai.by, ai.desc, ai.chips.join(" "), (TAGS[ai.name] || []).join(" ")]
+        .join(" ").toLowerCase();
+      grid.appendChild(card);
+    }
+
+    /* ═════════════════════════════════════════
+       8.5 СВОЯ НЕЙРОСЕТЬ — первое место забронировано навсегда
+       ═════════════════════════════════════════ */
+    const own = document.createElement("a");
+    own.className = "tile own reveal";
+    own.href = "#";
+    own.addEventListener("click", (e) => e.preventDefault()); // пока некуда вести
+    own.innerHTML = `
+      <span class="badge">скоро</span>
+      <div class="tile-top">
+        <div class="mark" style="background:linear-gradient(135deg,#ec4899,#22d3ee);font-size:.85rem">P1</div>
+        <div>
+          <h3>${OWN_NAME}</h3>
+          <div class="who">твоя нейросеть</div>
+        </div>
+      </div>
+      <p class="desc">Первое место каталога закреплено за твоей собственной моделью. Сделаешь — выйдет в мир отсюда. Имя меняется одной строчкой.</p>
+      <div class="chips"><span class="chip-s">твоя модель</span><span class="chip-s">в разработке</span></div>
+      <div class="open-row"><span>Скоро здесь</span><span class="arr">✦</span></div>`;
+    grid.prepend(own);
+
+    /* ═════════════════════════════════════════
+       8.6 ПОДБИРАЛКА ПО ЗАДАЧЕ
+       ═════════════════════════════════════════ */
+    const tiles = [...grid.querySelectorAll(".tile")]; // своя карточка тоже тут, но её не прячем
+
+    // Прячет неподходящие карточки. Возвращает число оставшихся.
+    function applyFilter(query) {
+      const q = query.trim().toLowerCase();
+      let visible = 0;
+      for (const t of tiles) {
+        if (t.classList.contains("own")) continue; // своя нейросеть видна всегда
+        const hay = t.dataset.s || "";
+        const ok = !q || hay.includes(q);
+        t.classList.toggle("hidden", !ok);
+        if (ok) visible++;
+      }
+      document.getElementById("no-match").classList.toggle("hidden", visible > 0);
+      return visible;
+    }
+
+    const fInput = document.getElementById("finder-input");
+    const finder = document.getElementById("finder");
+    const catalog = document.getElementById("catalog");
+
+    /* ═════════════════════════════════════════
+       ЖИВОЙ ЧАТ: модели отвечают прямо на сайте
+       ═════════════════════════════════════════ */
+    const msgsBox = document.getElementById("msgs");
+    const aiChips = document.getElementById("ai-chips");
+    const gkey = localStorage.getItem("ng-gkey") || ""; // свой ключ Gemini, если включал
+    const chatHistory = []; // [{role, content}] — общий контекст, модели его видят
+
+    const SYS = "Ты — ассистент портала NEUROGATE (подборка нейросетей). Отвечай дружелюбно, живо и по-русски. Будь кратким, если не просят подробностей.";
+
+    // красивые подписи и цвета для известных моделей
+    const LABELS = {
+      // наш бортовой мозг подписан брендом сайта: GPT-OSS источником лишь внутри
+      "openai-fast": "NeuroGate", "openai": "GPT-4.1 mini", "openai-large": "GPT-4.1",
+      "mistral": "Mistral", "llama": "Llama 3.3", "deepseek": "DeepSeek V3",
+      "deepseek-reasoning": "DeepSeek R1", "qwen-coder": "Qwen Coder", "phi": "Phi-4"
+    };
+    const GRADES = {
+      "openai-fast": ["#ec4899", "#a855f7"], "openai": ["#10a37f", "#0d8a4f"], "openai-large": ["#2563eb", "#1e40af"],
+      "mistral": ["#ff7000", "#e0b000"], "llama": ["#60a5fa", "#3b82f6"],
+      "deepseek-reasoning": ["#4d6bfe", "#2740c8"], "deepseek": ["#4d6bfe", "#2740c8"],
+      "qwen-coder": ["#615ced", "#3c2f9e"], "phi": ["#c084fc", "#7c3aed"],
+      "gemini-2.0-flash": ["#4285f4", "#9b72cb"], "gemini-2.5-flash": ["#34a853", "#4285f4"],
+      "perchi-local": ["#f0abfc", "#7c3aed"]
+    };
+
+    let chatModels = [];  // [{id, label, grad, gemini}]
+    let selected = new Set(JSON.parse(localStorage.getItem("ng-chat-models") || "[]"));
+
+    // чипы моделей: список прилетает живьём с сервера — добавят новые, появятся сами
+    function buildChips() {
+      aiChips.innerHTML = "";
+      if (!chatModels.length) return;
+      if (!selected.size) {
+        // по умолчанию первая ОНЛАЙН-модель — локальный мозг включают осознанно
+        const def = chatModels.find(m => !m.local) || chatModels[0];
+        selected.add(def.id);
+      }
+      for (const m of chatModels) {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "ai-chip" + (selected.has(m.id) ? " on" : "");
+        chip.innerHTML = `<span class="mp-dot" style="background:linear-gradient(135deg, ${m.grad[0]}, ${m.grad[1]})"></span>${m.label}`;
+        chip.addEventListener("click", () => {
+          selected.has(m.id) ? selected.delete(m.id) : selected.add(m.id);
+          localStorage.setItem("ng-chat-models", JSON.stringify([...selected]));
+          chip.classList.toggle("on");
+        });
+        aiChips.appendChild(chip);
+      }
+    }
+
+    (async () => {
+      let list = [];
+      try {
+        const res = await fetch("https://text.pollinations.ai/models");
+        list = (await res.json()).map(m => m.name);
+      } catch { /* оффлайн — сработает фолбэк ниже */ }
+      if (!list.length) list = ["openai-fast"];
+      chatModels = list.map(id => ({ id, label: LABELS[id] || id, grad: GRADES[id] || ["#ec4899", "#a855f7"] }));
+
+      // вставил ключ → добавляем Gemini как настоящую вторую сеть
+      if (gkey) {
+        for (const g of ["gemini-2.0-flash", "gemini-2.5-flash"]) {
+          chatModels.unshift({ id: g, label: LABELS[g] || g, grad: GRADES[g], gemini: true });
+        }
+      }
+      // PERCHI-1 Local: офлайн-мозг на WebGPU — качается один раз, потом живёт в кэше навсегда
+      if (navigator.gpu) {
+        const ready = localStorage.getItem("ng-local-ready") === "1";
+        chatModels.unshift({
+          id: "perchi-local",
+          label: ready ? "PERCHI-1 Local ✅" : "PERCHI-1 Local ⬇",
+          grad: GRADES["perchi-local"],
+          local: true
+        });
+      }
+      // выбранные, которых сервер больше не отдаёт, выкидываем
+      const alive = new Set(chatModels.map(m => m.id));
+      selected = new Set([...selected].filter(id => alive.has(id)));
+      buildChips();
+    })();
+
+    /* ── PERCHI-1 Local: офлайн-мозг прямо в браузере ──
+       Первый запуск качает модель с открытых зеркал, дальше она
+       живёт в кэше браузера и отвечает вообще без интернета. */
+    let localEngine = null;
+    let localPromise = null;
+    const LOCAL_MODEL = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
+    const SYS_LOCAL = "Ты — PERCHI-1, локальный офлайн-мозг портала NEUROGATE. Отвечай кратко, живо и по-русски.";
+
+    function ensureLocalEngine() {
+      if (localEngine) return Promise.resolve(localEngine);
+      if (!localPromise) {
+        localPromise = import("https://esm.run/@mlc-ai/web-llm")
+          .then(webllm => webllm.CreateMLCEngine(LOCAL_MODEL, {
+            initProgressCallback: (p) => {
+              window.__ngprog = String(p.text || "");
+              const el = document.getElementById("local-progress");
+              if (el) el.textContent = "🧠 " + String(p.text || "").slice(0, 88);
+            }
+          }))
+          .then(eng => {
+            localEngine = eng;
+            localStorage.setItem("ng-local-ready", "1");
+            markLocalReady();
+            return eng;
+          });
+      }
+      return localPromise;
+    }
+
+    async function askLocal(withHistory) {
+      const engine = await ensureLocalEngine();
+      const r = await engine.chat.completions.create({
+        messages: [{ role: "system", content: SYS_LOCAL }, ...withHistory],
+        max_tokens: 650,
+        temperature: 0.7
+      });
+      return (r.choices[0].message.content || "")
+        .replace(/<think>[\s\S]*?<\/think>/gi, "")
+        .trim();
+    }
+
+    function markLocalReady() {
+      const chip = [...aiChips.children].find(c => c.textContent.includes("PERCHI"));
+      if (chip) {
+        chip.innerHTML = `<span class="mp-dot" style="background:linear-gradient(135deg, ${GRADES["perchi-local"][0]}, ${GRADES["perchi-local"][1]})"></span>PERCHI-1 Local ✅`;
+      }
+    }
+
+    /* ── лента сообщений ── */
+    function addMsg(role, text, model) {
+      const div = document.createElement("div");
+      div.className = "msg " + role;
+      if (role === "ai") {
+        div.innerHTML = `
+          <div class="msg-head"><span class="mp-dot" style="background:linear-gradient(135deg, ${model.grad[0]}, ${model.grad[1]})"></span>${model.label}</div>
+          <div class="msg-bubble"></div>`;
+      } else {
+        div.innerHTML = `<div class="msg-bubble"></div>`;
+      }
+      div.querySelector(".msg-bubble").textContent = text;
+      msgsBox.appendChild(div);
+      msgsBox.scrollTop = msgsBox.scrollHeight;
+      return div;
+    }
+
+    // печатает текст рывками по 3 символа — похожe на живую печать
+    function typeInto(el, fullText) {
+      return new Promise(done => {
+        let i = 0;
+        (function tick() {
+          i = Math.min(fullText.length, i + 3);
+          el.textContent = fullText.slice(0, i);
+          msgsBox.scrollTop = msgsBox.scrollHeight;
+          if (i < fullText.length) setTimeout(tick, 16);
+          else done();
+        })();
+      });
+    }
+
+    /* ── запросы: бесплатный шлюз + твой личный Gemini ── */
+    async function askPollinations(modelId, messages) {
+      const res = await fetch("https://text.pollinations.ai/openai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: modelId, messages, private: true })
+      });
+      if (res.status === 429) throw { busy: true };
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      const text = data.choices && data.choices[0] && data.choices[0].message.content;
+      if (!text) throw new Error("пустой ответ");
+      return text;
+    }
+
+    async function askGemini(modelId, history) {
+      const contents = history.map(h => ({
+        role: h.role === "assistant" ? "model" : "user",
+        parts: [{ text: h.content }]
+      }));
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": gkey },
+        body: JSON.stringify({ contents })
+      });
+      if (res.status === 429) throw { busy: true };
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      const text = data.candidates && data.candidates[0] &&
+        data.candidates[0].content.parts.map(p => p.text).join("");
+      if (!text) throw new Error("пустой ответ");
+      return text;
+    }
+
+    // одна модель: пузырь → «думает…» → печатный ответ. При 429 повтор один раз
+    async function runOne(model, withHistory, attempt = 0) {
+      const div = addMsg("ai", "", model);
+      const bubble = div.querySelector(".msg-bubble");
+      bubble.innerHTML = model.local
+        ? `<span class="spin"></span> <span style="color:var(--muted)" id="local-progress">🧠 включаю локальный мозг…</span>`
+        : `<span class="spin"></span> <span style="color:var(--muted)">думает…</span>`;
+      try {
+        const text = model.local
+          ? await askLocal(withHistory)
+          : model.gemini
+            ? await askGemini(model.id, withHistory)
+            : await askPollinations(model.id, [{ role: "system", content: SYS }, ...withHistory]);
+        bubble.textContent = "";
+        await typeInto(bubble, text);
+        chatHistory.push({ role: "assistant", content: text });
+        chatSave("ai", model.label, text);
+      } catch (err) {
+        if (err.busy && attempt < 1) {
+          bubble.innerHTML = `<span style="color:#fbbf24">🚦 канал занят, повторяю через 5 сек…</span>`;
+          await new Promise(r => setTimeout(r, 5000));
+          return runOne(model, withHistory, attempt + 1);
+        }
+        bubble.innerHTML = model.local
+          ? `<span class="warn">😵 локальный мозг не поднялся: при самом первом запуске нужен интернет, чтобы скачать его один раз. Дальше — без сети.</span>`
+          : `<span class="warn">😵 не дожал, попробуй ещё раз — бесплатный канал, бывает.</span>`;
+      }
+    }
+
+    finder.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const q = fInput.value.trim();
+      if (!q) {
+        finder.classList.add("shake");
+        setTimeout(() => finder.classList.remove("shake"), 500);
+        fInput.focus();
+        return;
+      }
+      const picks = chatModels.filter(m => selected.has(m.id));
+      if (!picks.length) { // ни одна модель не отмечена
+        aiChips.classList.add("shake");
+        setTimeout(() => aiChips.classList.remove("shake"), 500);
+        return;
+      }
+      const empty = document.getElementById("msg-empty");
+      if (empty) empty.remove();
+      addMsg("user", q);
+      chatSave("user", null, q);
+      chatHistory.push({ role: "user", content: q });
+      const withHistory = chatHistory.slice(-10);
+      fInput.value = "";
+      fInput.focus();
+      // модели стартуют с лёгким разбегом, а не синхронной очередью
+      picks.forEach((m, i) => setTimeout(() => runOne(m, withHistory), i * 350));
+    });
+
+    /* ── опционально: свой ключ Gemini → ещё две сети в чате ── */
+    const gsPop = document.getElementById("gs-pop");
+    document.getElementById("gs-btn").addEventListener("click", () => gsPop.classList.toggle("open"));
+    document.getElementById("gs-save").addEventListener("click", () => {
+      const v = document.getElementById("gs-key").value.trim();
+      if (v) { localStorage.setItem("ng-gkey", v); location.reload(); } // перезагрузка — чипы пересоберутся сами
+    });
+
+    // чипы-подсказки: один клик — фильтр применён (поле чата не трогаем)
+    for (const pill of document.querySelectorAll(".pill")) {
+      pill.addEventListener("click", () => {
+        applyFilter(pill.textContent.trim());
+        catalog.scrollIntoView({ behavior: "smooth" });
+      });
+    }
+
+    /* ═════════════════════════════════════════
+       9. ПЕЧАТНАЯ МАШИНКА (та же, что была на визитке)
+       ═════════════════════════════════════════ */
+    const typingEl = document.getElementById("typing");
+
+    function typeText(el, text, speed, done) {
+      let i = 0;
+      (function tick() {
+        el.textContent = text.slice(0, ++i);
+        if (i < text.length) setTimeout(tick, speed + Math.random() * 40);
+        else done && done();
+      })();
+    }
+    function eraseText(el, speed, done) {
+      let i = el.textContent.length;
+      (function tick() {
+        el.textContent = el.textContent.slice(0, --i);
+        if (i > 0) setTimeout(tick, speed);
+        else done && done();
+      })();
+    }
+
+    let idx = 0;
+    (function cycle() {
+      typeText(typingEl, MODELS[idx], 55, () => {
+        setTimeout(() => eraseText(typingEl, 26, () => {
+          idx = (idx + 1) % MODELS.length;
+          setTimeout(cycle, 420);
+        }), 1500);
+      });
+    })();
+
+    /* ═════════════════════════════════════════
+       10. «МНЕ ПОВЕЗЁТ» — открыть случайную нейросеть
+       ═════════════════════════════════════════ */
+    function openLucky() {
+      const pick = AIS[Math.floor(Math.random() * AIS.length)];
+      window.open(pick.url, "_blank", "noopener");
+      // маленький визуальный отклик, если всплывающее окно заблокирует браузер
+      const btn = document.getElementById("lucky-btn");
+      btn.textContent = "→ " + pick.name + " ✦";
+      setTimeout(() => { btn.innerHTML = 'Мне повезёт <span class="spark">✦</span>'; }, 1800);
+    }
+    document.getElementById("lucky-btn").addEventListener("click", openLucky);
+
+    /* ═════════════════════════════════════════
+       11. ПОЯВЛЕНИЕ СЕКЦИЙ ПРИ ПРОКРУТКЕ (IntersectionObserver)
+       ═════════════════════════════════════════ */
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) { e.target.classList.add("on"); io.unobserve(e.target); }
+      }
+    }, { threshold: 0.15 });
+    document.querySelectorAll(".reveal").forEach(el => io.observe(el));
+
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    /* ═════════════════════════════════════════
+       11.5 NEUROGATE ID: профиль без серверов
+       Гость — мгновенно. GitHub — device-кодом (работает уже сейчас).
+       Google / VK / Telegram-виджет — включатся после https-хостинга.
+       ═════════════════════════════════════════ */
+    const am = document.getElementById("am");
+    const amBody = document.getElementById("am-body");
+    const authBtn = document.getElementById("auth-btn");
+    let profile = (() => { try { return JSON.parse(localStorage.getItem("ng-profile") || "null"); } catch { return null; } })();
+
+    const GUEST_EMOJI = ["🚀", "🛸", "👾", "🧿", "🦾", "🧠", "✨", "🔥"];
+    const GUEST_GRAD  = [["#ec4899", "#a855f7"], ["#22d3ee", "#3b82f6"], ["#a3e635", "#facc15"], ["#f472b6", "#fb923c"]];
+    const nice = arr => arr[Math.floor(Math.random() * arr.length)];
+
+    function saveProfile(p) {
+      profile = p;
+      p ? localStorage.setItem("ng-profile", JSON.stringify(p)) : localStorage.removeItem("ng-profile");
+      renderHeader(); renderModal();
+    }
+
+    function renderHeader() {
+      if (!profile) { authBtn.innerHTML = "Войти"; return; }
+      authBtn.innerHTML = profile.avatar
+        ? `<img src="${profile.avatar}" alt=""><span>${profile.name}</span>`
+        : `<span class="av" style="background:linear-gradient(135deg, ${profile.grad[0]}, ${profile.grad[1]})">${profile.emoji}</span><span>${profile.name}</span>`;
+    }
+
+    function renderModal() {
+      if (profile) {
+        amBody.innerHTML = `
+          <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.1rem">
+            ${profile.avatar
+              ? `<img src="${profile.avatar}" style="width:52px;height:52px;border-radius:50%">`
+              : `<span class="av" style="width:52px;height:52px;font-size:1.5rem;background:linear-gradient(135deg, ${profile.grad[0]}, ${profile.grad[1]})">${profile.emoji}</span>`}
+            <div>
+              <div style="font-weight:700">${profile.name}</div>
+              <div style="color:var(--muted);font-size:.8rem">${profile.type === "github" ? "GitHub · @" + profile.handle : "гостевой профиль"}</div>
+            </div>
+          </div>
+          <button class="ab muted" disabled>☁ Облачная синхронизация — после хостинга</button>
+          <button class="ab" id="am-quit">Выйти</button>
+          <p class="am-note">«Выйти» — забыть профиль в этом браузере. История чата сохранится под ним на случай возврата.</p>`;
+        document.getElementById("am-quit").addEventListener("click", () => { saveProfile(null); location.reload(); });
+        return;
+      }
+
+      const cid = localStorage.getItem("ng-gh-client") || "";
+      amBody.innerHTML = `
+        <button class="ab primary" id="ab-guest">
+          <span style="font-size:1.15rem">🚀</span>
+          <span>Войти как гость<span class="sub">мгновенно · без данных · всё локально</span></span>
+        </button>
+        <button class="ab" id="ab-gh">
+          <svg viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+          <span>Войти через GitHub<span class="sub">настоящий аккаунт · код подтверждения · без сервера</span></span>
+        </button>
+        <button class="ab muted" disabled title="Telegram-логину нужен https-домен — включим после хостинга">✈<span>Telegram<span class="sub">включится сразу после хостинга на GitHub Pages</span></span></button>
+        <button class="ab muted" disabled title="OAuth Google требует зарегистрированного домена">🌐<span>Google<span class="sub">после хостинга</span></span></button>
+        <button class="ab muted" disabled title="VK ID требует зарегистрированного домена">🅥<span>VK ID<span class="sub">после хостинга</span></span></button>
+
+        <div class="am-config">
+          <span class="lab">⚙ GitHub работает уже сейчас — нужен только Client ID (бесплатно, 2 минуты):
+            github.com/settings/developers → New OAuth App → поле callback оставь пустым</span>
+          <div class="row">
+            <input id="gh-cid" placeholder="${cid ? "сохранён: " + cid.slice(0, 8) + "…" : "вставь Client ID"}">
+            <button id="gh-save">Сохранить</button>
+          </div>
+        </div>
+        <p class="am-note">Гость работает сразу. GitHub — после вставки Client ID: сайт покажет код, введёшь его на github.com/login/device — и твоё имя с аватаркой появится в шапке.</p>`;
+
+      document.getElementById("ab-guest").addEventListener("click", () => {
+        saveProfile({
+          type: "guest",
+          name: "Пилот-" + (100 + Math.floor(Math.random() * 900)),
+          emoji: nice(GUEST_EMOJI),
+          grad: nice(GUEST_GRAD)
+        });
+        am.classList.remove("open");
+      });
+      document.getElementById("ab-gh").addEventListener("click", ghLogin);
+      document.getElementById("gh-save").addEventListener("click", () => {
+        const v = document.getElementById("gh-cid").value.trim();
+        if (v) { localStorage.setItem("ng-gh-client", v); renderModal(); }
+      });
+    }
+
+    // GitHub Device Flow: код на экране → подтверждение в браузере → готово. Без сервера.
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    async function ghLogin() {
+      const cid = localStorage.getItem("ng-gh-client");
+      if (!cid) { document.getElementById("gh-cid").focus(); return; }
+      amBody.innerHTML = `
+        <p class="am-sub">Открой github.com/login/device и введи код:</p>
+        <div class="am-code" id="am-code">…</div>
+        <div class="am-status"><span class="spin"></span> жду подтверждения…</div>
+        <button class="ab am-quit" id="gh-cancel">Отмена</button>`;
+      document.getElementById("gh-cancel").addEventListener("click", () => renderModal());
+      const r = await fetch("https://github.com/login/device/code", {
+        method: "POST",
+        headers: { "Accept": "application/json" },
+        body: new URLSearchParams({ client_id: cid, scope: "read:user" })
+      });
+      const d = await r.json();
+      if (!d.device_code) {
+        amBody.insertAdjacentHTML("beforeend", `<p class="am-note" style="color:#fda4af">Ошибка: ${d.error_description || d.error}. Проверь Client ID.</p>`);
+        return;
+      }
+      document.getElementById("am-code").textContent = d.user_code;
+      window.open(d.verification_uri, "_blank", "noopener");
+      for (let i = 0; i < 20; i++) {
+        await sleep((d.interval || 5) * 1000);
+        const rr = await fetch("https://github.com/login/oauth/access_token", {
+          method: "POST",
+          headers: { "Accept": "application/json" },
+          body: new URLSearchParams({
+            client_id: cid, device_code: d.device_code,
+            grant_type: "urn:ietf:params:oauth:grant-type:device_code"
+          })
+        });
+        const dd = await rr.json();
+        if (dd.access_token) {
+          const u = await (await fetch("https://api.github.com/user", { headers: { "Authorization": "Bearer " + dd.access_token } })).json();
+          saveProfile({ type: "github", name: u.name || u.login, handle: u.login, avatar: u.avatar_url });
+          am.classList.remove("open");
+          return;
+        }
+        if (dd.error && dd.error !== "authorization_pending" && dd.error !== "slow_down") {
+          amBody.insertAdjacentHTML("beforeend", `<p class="am-note" style="color:#fda4af">${dd.error_description || dd.error}</p>`);
+          return;
+        }
+      }
+      amBody.insertAdjacentHTML("beforeend", `<p class="am-note" style="color:#fda4af">Время кода истекло — попробуй снова.</p>`);
+    }
+
+    // клики по шапке и оверлею
+    authBtn.addEventListener("click", () => am.classList.toggle("open"));
+    document.getElementById("am-close").addEventListener("click", () => am.classList.remove("open"));
+    am.addEventListener("click", (e) => { if (e.target === am) am.classList.remove("open"); });
+    renderHeader(); renderModal();
+
+    /* ── история чата живёт под профилем ── */
+    function profileKey() { return profile ? "ng-chat-" + profile.type + "-" + (profile.handle || profile.name) : null; }
+    function chatSave(role, label, text) {
+      const key = profileKey(); if (!key) return;
+      let log = []; try { log = JSON.parse(localStorage.getItem(key) || "[]"); } catch {}
+      log.push({ role, label, text });
+      localStorage.setItem(key, JSON.stringify(log.slice(-40)));
+    }
+    function chatRestore() {
+      const key = profileKey(); if (!key) return;
+      let log = []; try { log = JSON.parse(localStorage.getItem(key) || "[]"); } catch {}
+      log = log.slice(-12);
+      if (!log.length) return;
+      const empty = document.getElementById("msg-empty");
+      if (empty) empty.remove();
+      for (const m of log) {
+        addMsg(m.role, "", { label: m.label || "модель", grad: ["#a855f7", "#7c3aed"] })
+          .querySelector(".msg-bubble").textContent = m.text;
+      }
+      const note = document.createElement("div");
+      note.className = "msg-empty";
+      note.textContent = "✦ история профиля восстановлена";
+      msgsBox.appendChild(note);
+    }
+    chatRestore();
+
+    /* ── Тарифы: «начать бесплатно» открывает вход, Pro пишет в локальный лист ожидания ── */
+    document.getElementById("free-btn").addEventListener("click", () => am.classList.add("open"));
+    const proBtn = document.getElementById("pro-btn");
+    if (localStorage.getItem("ng-waitlist")) { proBtn.textContent = "✓ ты в списке на запуск"; proBtn.disabled = true; proBtn.classList.add("muted"); }
+    proBtn.addEventListener("click", () => {
+      localStorage.setItem("ng-waitlist", String(Date.now()));
+      proBtn.textContent = "✓ ты в списке на запуск";
+      proBtn.disabled = true;
+      proBtn.classList.add("muted");
+    });
+
+    /* ═════════════════════════════════════════
+       12. КОСМОС НА CANVAS — звёзды + фиолетовые туманности
+       ═════════════════════════════════════════ */
+    const canvas = document.getElementById("space");
+    const ctx = canvas.getContext("2d");
+    const rand = (a, b) => a + Math.random() * (b - a);
+
+    let W = 0, H = 0, stars = [];
+    const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    function makeStars() {
+      const count = Math.min(160, Math.round(W * H / 9000)); // звёзд меньше, чем на визитке: фон спокойный
+      stars = Array.from({ length: count }, () => ({
+        x: Math.random() * W, y: Math.random() * H,
+        r: rand(0.4, 1.5), vx: rand(0.02, 0.08),
+        color: ["#ffffff", "#ffffff", "#e9d5ff", "#f0abfc"][Math.floor(Math.random() * 4)],
+        phase: rand(0, Math.PI * 2), ts: rand(0.4, 1.3)
+      }));
+    }
+
+    function resize() {
+      const dpr = Math.min(devicePixelRatio || 1, 2);
+      W = innerWidth; H = innerHeight;
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      makeStars();
+    }
+    addEventListener("resize", resize);
+    resize();
+
+    const blobs = [
+      { fx: .2,  fy: .25, rr: .55, color: "168,85,247", a: .13, sp: .00018, ph: 0,   amp: 60 },
+      { fx: .8,  fy: .35, rr: .48, color: "236,72,153", a: .10, sp: .00014, ph: 2.4, amp: 50 },
+      { fx: .5,  fy: .88, rr: .42, color: "124,58,237", a: .11, sp: .00011, ph: 4.1, amp: 64 }
+    ];
+
+    function drawNebula(t, ox, oy) {
+      ctx.globalCompositeOperation = "lighter";
+      const m = Math.min(W, H);
+      for (const b of blobs) {
+        const x = b.fx * W + Math.cos(t * b.sp + b.ph) * b.amp + ox;
+        const y = b.fy * H + Math.sin(t * b.sp * 1.3 + b.ph) * b.amp + oy;
+        const r = b.rr * m;
+        const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+        g.addColorStop(0, `rgba(${b.color},${b.a})`);
+        g.addColorStop(1, `rgba(${b.color},0)`);
+        ctx.fillStyle = g;
+        ctx.fillRect(x - r, y - r, r * 2, r * 2);
+      }
+      ctx.globalCompositeOperation = "source-over";
+    }
+
+    function drawStars(t) {
+      for (const s of stars) {
+        s.x += s.vx * 0.4;
+        if (s.x > W + 4) s.x = -4;
+        ctx.globalAlpha = 0.5 * (0.55 + 0.45 * Math.sin(t * 0.001 * s.ts + s.phase));
+        ctx.fillStyle = s.color;
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // падающая звезда — патрулирует герой-экран
+    let meteor = null, nextMeteor = performance.now() + rand(2500, 6000);
+
+    function drawMeteor(now) {
+      if (!meteor && now > nextMeteor) {
+        meteor = { x: rand(W * 0.25, W * 1.05), y: rand(-30, H * 0.35),
+                   vx: -rand(4.5, 7), vy: rand(1.6, 2.6), len: rand(90, 150),
+                   born: now, ttl: rand(900, 1400) };
+      }
+      if (!meteor) return;
+      const m = meteor, age = now - m.born;
+      if (age > m.ttl || m.x < -m.len) { meteor = null; nextMeteor = now + rand(4000, 9000); return; }
+
+      m.x += m.vx; m.y += m.vy;
+      const a = Math.sin((age / m.ttl) * Math.PI) * 0.9;
+      const tx = m.x - m.vx * (m.len / 6), ty = m.y - m.vy * (m.len / 6);
+      const g = ctx.createLinearGradient(m.x, m.y, tx, ty);
+      g.addColorStop(0, `rgba(245,230,255,${a})`);
+      g.addColorStop(1, "rgba(245,230,255,0)");
+      ctx.strokeStyle = g; ctx.lineWidth = 1.6; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(tx, ty); ctx.stroke();
+    }
+
+    function loop(t) {
+      ctx.clearRect(0, 0, W, H);
+      drawNebula(t, 0, 0);
+      drawStars(t);
+      drawMeteor(performance.now());
+      requestAnimationFrame(loop);
+    }
+    if (reducedMotion) { ctx.clearRect(0, 0, W, H); drawNebula(0, 0, 0); drawStars(0); }
+    else requestAnimationFrame(loop);
+  </script>
+
+  <script>
+  // Service Worker: регистрация только на https (или localhost) — на file:// тихо пропускаем
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("neurogate-sw.js").catch(() => {});
+    });
+  }
+  </script>
+</body>
+</html>
